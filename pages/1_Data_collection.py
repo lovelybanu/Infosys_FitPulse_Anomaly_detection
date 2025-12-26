@@ -174,10 +174,14 @@ class FitnessDataValidator:
 
             df["timestamp"] = parsed_timestamps
 
-            if df["timestamp"].dt.tz is not None:
-                df["timestamp"] = df["timestamp"].dt.tz_convert("UTC")
-            else:
-                df["timestamp"] = df["timestamp"].dt.tz_localize("UTC")
+            df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+            df["timestamp"] = df["timestamp"].dt.tz_localize(None)
+
+
+            # if df["timestamp"].dt.tz is not None:
+            #     df["timestamp"] = df["timestamp"].dt.tz_convert("UTC")
+            # else:
+            #     df["timestamp"] = df["timestamp"].dt.tz_localize("UTC")
 
         except Exception as e:
             issues.append(f"Timestamp processing error: {str(e)}")
@@ -826,6 +830,13 @@ def main():
     with tab_logs:
         preprocessor.show_logs()
 
+uploaded = st.file_uploader("Upload combined CSV")
+
+if uploaded:
+    df = pd.read_csv(uploaded)
+    st.session_state["raw_fitness_data"] = df
+    
+    st.success("Data Stored Successfully – Now switch to Feature Extraction!")
 
 if __name__ == "__main__":
     main()
