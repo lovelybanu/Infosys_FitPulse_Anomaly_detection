@@ -30,10 +30,28 @@ class FitnessDataUploader:
     def create_upload_interface(self) -> Dict[str, pd.DataFrame]:
         st.subheader("📁 Upload Fitness Tracker Data")
 
+        # If data was previously uploaded and stored in session, offer to reuse or clear it
+        existing = st.session_state.get("raw_fitness_data", None)
+        col1, col2 = st.columns([8, 2])
+        with col1:
+            if existing:
+                st.info("Using previously uploaded data (persisted in session).")
+        with col2:
+            if existing:
+                if st.button("Clear upload", key="clear_uploaded"):
+                    # Clear the stored data and trigger a rerun to show the uploader immediately
+                    st.session_state["raw_fitness_data"] = None
+                    st.rerun()
+
+        # If there's existing parsed data and the user did not clear it, return it
+        if existing:
+            return existing
+
         uploaded_files = st.file_uploader(
             "Upload a combined CSV/JSON file",
             type=["csv", "json"],
             accept_multiple_files=False,
+            key="fitness_uploader",
         )
 
         data_dict: Dict[str, pd.DataFrame] = {}
@@ -72,7 +90,8 @@ class FitnessDataUploader:
             if not data_dict:
                 st.error("❌ No valid fitness columns found in the uploaded file.")
                 st.stop()
-
+            # Persist parsed data in session state so it survives page navigation
+            st.session_state["raw_fitness_data"] = data_dict
         except Exception as e:
             st.error(f"Error reading file: {e}")
 
@@ -770,11 +789,17 @@ def main():
         st.session_state.preprocessor = FitnessDataPreprocessor()
     preprocessor: FitnessDataPreprocessor = st.session_state.preprocessor
 
+    # Initialize session state for data persistence
+    if "raw_fitness_data" not in st.session_state:
+        st.session_state.raw_fitness_data = None
+    if "processed_data" not in st.session_state:
+        st.session_state.processed_data = {}
+
     # ---------- SIDEBAR ----------
     st.sidebar.header("⚙️ Pipeline Settings")
 
     use_sample_data = st.sidebar.checkbox(
-        "Use sample demo data", value=True, help="Turn off to upload your own files."
+        "Use sample demo data", value=False, help="Turn off to upload your own files."
     )
 
     target_frequency = st.sidebar.selectbox(
@@ -787,12 +812,7 @@ def main():
         index=0,
     )
 
-    # st.sidebar.markdown("---")
-    # st.sidebar.markdown("**Pipeline Components**")
-    # st.sidebar.markdown("✅ A – File Upload")
-    # st.sidebar.markdown("✅ B – Validation & Cleaning")
-    # st.sidebar.markdown("✅ C – Time Alignment")
-
+   
     # ---------- MAIN TABS ----------
     tab_run, tab_preview, tab_logs = st.tabs(
         ["🚀 Run Pipeline", "📊 Visual Analytics", "📜 Logs"]
@@ -810,7 +830,7 @@ def main():
         else:
             raw_data = preprocessor.uploader.create_upload_interface()
 
-        if st.button("🚀 Run Milestone 1 Pipeline", type="primary"):
+        if st.button("🚀 Run Pipeline", type="primary"):
             with st.spinner("Processing data through A+B+C pipeline..."):
                 processed = preprocessor.run_complete_pipeline(
                     use_sample_data=use_sample_data,
@@ -820,7 +840,11 @@ def main():
                 )
 
             if processed:
+                # Store processed data in session state for persistence across pages
+                st.session_state.processed_data = processed
+                st.session_state.raw_fitness_data = raw_data
                 st.success("✅ Milestone 1 completed successfully.")
+                st.info("Data stored! You can now switch to other pages.")
             else:
                 st.error("❌ Pipeline did not complete. Check messages above.")
 
@@ -830,13 +854,6 @@ def main():
     with tab_logs:
         preprocessor.show_logs()
 
-uploaded = st.file_uploader("Upload combined CSV")
-
-if uploaded:
-    df = pd.read_csv(uploaded)
-    st.session_state["raw_fitness_data"] = df
-    
-    st.success("Data Stored Successfully – Now switch to Feature Extraction!")
 
 if __name__ == "__main__":
     main()

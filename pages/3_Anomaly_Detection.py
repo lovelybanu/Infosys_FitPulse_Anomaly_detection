@@ -31,17 +31,17 @@ def main():
 
     if "preprocessor" in st.session_state:
         preprocessed_data = st.session_state.preprocessor.processed_data
-        st.success("📌 Loaded Milestone-1 processed data")
+        st.success("📌 Loaded processed data")
 
     if "milestone2_results" in st.session_state:
         m2 = st.session_state.milestone2_results
         prophet_forecasts = m2.get("forecasts")
         feature_matrices = m2.get("features")
         cluster_labels = m2.get("clusters")
-        st.success("📌 Loaded Milestone-2 Prophet & Cluster outputs")
+        st.success("📌 Loaded Prophet & Cluster outputs")
 
     if not preprocessed_data:
-        st.warning("⚠ No data found – Run Milestone-1 & 2 first")
+        st.warning("⚠ No data found – Run Step-1 & 2 first")
         return
 
     # ---------------- SETTINGS ----------------
@@ -60,7 +60,7 @@ def main():
             )
             st.session_state.milestone3_results = results
 
-        st.success("🎉 Milestone-3 Completed!")
+        st.success("🎉 Anomaly Detection Completed!")
 
     # ---------------- DISPLAY RESULTS ----------------
     if "milestone3_results" in st.session_state:
