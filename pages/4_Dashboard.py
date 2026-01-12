@@ -283,21 +283,27 @@ def main():
         dist_df = data_dict.get(dist_key_map[dist_metric])
         
         if dist_df is not None and not dist_df.empty:
-            metric_col = dist_df.columns[1]
+            # Find numeric column (skip timestamp and categorical columns)
+            numeric_cols = dist_df.select_dtypes(include=[np.number]).columns.tolist()
             
-            # Histogram
-            fig_hist = px.histogram(dist_df, x=metric_col, nbins=30, 
-                                   title=f"<b>{dist_metric} – Distribution</b>",
-                                   color_discrete_sequence=['steelblue'])
-            fig_hist.update_layout(height=350, showlegend=False)
-            st.plotly_chart(fig_hist, use_container_width=True)
-            
-            # Statistics
-            col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-            col_s1.metric("Mean", f"{dist_df[metric_col].mean():.2f}")
-            col_s2.metric("Median", f"{dist_df[metric_col].median():.2f}")
-            col_s3.metric("Std Dev", f"{dist_df[metric_col].std():.2f}")
-            col_s4.metric("Range", f"{dist_df[metric_col].max() - dist_df[metric_col].min():.2f}")
+            if len(numeric_cols) > 0:
+                metric_col = numeric_cols[0]  # Use first numeric column
+                
+                # Histogram
+                fig_hist = px.histogram(dist_df, x=metric_col, nbins=30, 
+                                       title=f"<b>{dist_metric} – Distribution</b>",
+                                       color_discrete_sequence=['steelblue'])
+                fig_hist.update_layout(height=350, showlegend=False)
+                st.plotly_chart(fig_hist, use_container_width=True)
+                
+                # Statistics
+                col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+                col_s1.metric("Mean", f"{dist_df[metric_col].mean():.2f}")
+                col_s2.metric("Median", f"{dist_df[metric_col].median():.2f}")
+                col_s3.metric("Std Dev", f"{dist_df[metric_col].std():.2f}")
+                col_s4.metric("Range", f"{dist_df[metric_col].max() - dist_df[metric_col].min():.2f}")
+            else:
+                st.warning("No numeric columns found for visualization.")
 
     with tab4:
         st.markdown("### 🧠 AI-Powered Health Insights & Recommendations")
